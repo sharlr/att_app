@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance Auto-Corrector by Sharl RAJAN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface-alt: #eeece7;
+    --border: #dddbd4;
+    --text: #1a1917;
+    --text-muted: #6b6960;
+    --text-faint: #9b9890;
+    --accent: #1a1917;
+    --green-bg: #e8f5ee;
+    --green-text: #1a6636;
+    --amber-bg: #fef3e2;
+    --amber-text: #92570a;
+    --blue-bg: #e8f0fe;
+    --blue-text: #1a56a6;
+    --red-bg: #fde8e8;
+    --red-text: #a61a1a;
+    --tag-bg: #edecea;
+    --tag-text: #3a3834;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px 60px;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .header-icon svg {
+    color: var(--text-muted);
+  }
+
+  .header-text h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .header-text p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  /* Rules card */
+  .rules-card {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px 16px;
+    margin-bottom: 16px;
+  }
+
+  .rules-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  .rules-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+  }
+
+  .rule-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .rule-row.full { grid-column: 1 / -1; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--tag-text);
+    white-space: nowrap;
+    font-family: 'DM Sans', monospace;
+  }
+
+  .arrow {
+    color: var(--text-faint);
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  /* Drop zone */
+  .drop-zone {
+    background: var(--surface);
+    border: 1.5px dashed var(--border);
+    border-radius: 14px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .drop-zone:hover, .drop-zone.drag-over {
+    background: var(--surface-alt);
+    border-color: var(--text-faint);
+  }
+
+  .drop-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .drop-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+
+  .drop-zone h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 5px;
+  }
+
+  .drop-zone p {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Status */
+  .status {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+
+  .status.info  { display: flex; background: var(--blue-bg);  color: var(--blue-text); }
+  .status.success { display: flex; background: var(--green-bg); color: var(--green-text); }
+  .status.error { display: flex; background: var(--red-bg);  color: var(--red-text); }
+
+  /* Stats */
+  .stats {
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+  }
+
+  .stat-n {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .stat-l {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: none;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    transition: background 0.12s;
+  }
+
+  .btn:hover { background: var(--surface-alt); }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--text);
+    color: #fff;
+    border-color: var(--text);
+  }
+
+  .btn-primary:hover { background: #2e2c28; }
+
+  /* Preview table */
+  .preview {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .preview-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 16px;
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  .tbl-wrap {
+    overflow-x: auto;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+
+  thead th {
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-size: 11px;
+    color: var(--text-faint);
+    background: var(--surface-alt);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    letter-spacing: 0.2px;
+  }
+
+  tbody td {
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--bg); }
+
+  .td-date { color: var(--text-muted); font-size: 12px; }
+  .td-id   { font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500; }
+  .td-in   { color: var(--green-text); font-weight: 500; }
+  .td-out  { color: var(--amber-text); font-weight: 500; }
+  .td-empty{ color: var(--text-faint); }
+
+  .col-in-hdr  { background: var(--green-bg) !important; color: var(--green-text) !important; }
+  .col-out-hdr { background: var(--amber-bg) !important; color: var(--amber-text) !important; }
+
+  /* Scrollbar */
+  .tbl-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
+  .tbl-wrap::-webkit-scrollbar-track { background: transparent; }
+  .tbl-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <h1>Attendance auto-corrector by Sharl RAJAN</h1>
+      <p>Contact me at +253 77 80 80 57 Email : sharlr@live.com </p>
+      <p>Upload original biometric export &rarr; get corrected punch slots instantly</p>
+    </div>
+  </div>
+
+  <div class="rules-card">
+    <div class="rules-label">Correction rules applied</div>
+    <div class="rules-grid">
+      <div class="rule-row">
+        DEBUT MATIN
+        <span class="arrow">&#8594;</span>
+        <span class="tag">&lt; 11:00</span>
+      </div>
+      <div class="rule-row">
+        FIN MATIN
+        <span class="arrow">&#8594;</span>
+        <span class="tag">11:00 &ndash; 14:30</span>
+      </div>
+      <div class="rule-row">
+        DEBUT APREM
+        <span class="arrow">&#8594;</span>
+        <span class="tag">14:30 &ndash; 17:30</span>
+      </div>
+      <div class="rule-row">
+        FIN APREM
+        <span class="arrow">&#8594;</span>
+        <span class="tag">&ge; 17:30</span>
+      </div>
+      <div class="rule-row full">
+        <span class="tag">&le; 30 mins straddle</span>
+        <span class="arrow">&#8594;</span>
+        duplicates removed, first kept
+      </div>
+    </div>
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".xlsx,.xls">
+    <div class="drop-icon-wrap">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" color="#6b6960">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </div>
+    <h2>Drop your Excel file here</h2>
+    <p>or click to browse &nbsp;&middot;&nbsp; .xlsx supported</p>
+  </div>
+
+  <div class="status" id="status"></div>
+
+  <div class="stats" id="stats">
+    <div class="stat"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Total rows</div></div>
+    <div class="stat"><div class="stat-n" id="sDups">0</div><div class="stat-l">Duplicates removed</div></div>
+    <div class="stat"><div class="stat-n" id="sFixed">0</div><div class="stat-l">Slots reassigned</div></div>
+  </div>
+
+  <div class="btn-row" id="btnRow">
+    <button class="btn btn-primary" id="dlBtn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download corrected file
+    </button>
+    <button class="btn" id="resetBtn">Upload another file</button>
+  </div>
+
+  <div class="preview" id="preview">
+    <div class="preview-hdr">
+      <span id="previewLabel">Preview</span>
+      <span id="previewCount" style="color:#9b9890"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>ID</th>
+            <th>Name</th>
+            <th class="col-in-hdr">DEBUT MATIN</th>
+            <th class="col-out-hdr">FIN MATIN</th>
+            <th class="col-in-hdr">DEBUT APREM</th>
+            <th class="col-out-hdr">FIN APREM</th>
+          </tr>
+        </thead>
+        <tbody id="tBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DUP=5/1440, T1=11/24, T2=14.5/24, T3=17.5/24;
+
+function toET(t){
+  if(t===null||t===undefined||t==='') return null;
+  if(typeof t==='number') return t<1?t:t-Math.floor(t);
+  return null;
+}
+
+function fmtTime(v){
+  if(v===null||v===undefined||v==='') return '';
+  let s=Math.round(v*86400);
+  return [Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');
+}
+
+function fmtDate(v){
+  if(!v) return '';
+  if(typeof v==='number'){
+    let d=XLSX.SSF.parse_date_code(v);
+    if(d) return String(d.d).padStart(2,'0')+'/'+String(d.m).padStart(2,'0')+'/'+d.y;
+  }
+  return String(v);
+}
+
+function fmtID(v){
+  if(v===null||v===undefined||v==='') return '';
+  return String(parseInt(v)||v).padStart(3,'0');
+}
+
+function removeDups(arr){
+  if(!arr.length) return arr;
+  let r=[arr[0]];
+  for(let i=1;i<arr.length;i++) if(arr[i]-r[r.length-1]>DUP) r.push(arr[i]);
+  return r;
+}
+
+function assignSlots(p){
+  let mi=null,mo=null,ai=null,ao=null;
+  for(let t of p){
+    if(t<T1){if(mi===null)mi=t;}
+    else if(t<T2){if(mo===null)mo=t;else if(ai===null)ai=t;}
+    else if(t<T3){if(ai===null)ai=t;}
+    else{if(ao===null)ao=t;}
+  }
+  return{mi,mo,ai,ao};
+}
+
+function correctRow(raw){
+  let vals=raw.map(toET).filter(v=>v!==null&&v>0).sort((a,b)=>a-b);
+  let orig=vals.length;
+  let dedup=removeDups(vals);
+  let removed=orig-dedup.length;
+  let{mi,mo,ai,ao}=assignSlots(dedup);
+  let os=[toET(raw[0]),toET(raw[1]),toET(raw[2]),toET(raw[3])];
+  let ns=[mi,mo,ai,ao];
+  let reassigned=JSON.stringify(os)!==JSON.stringify(ns)&&removed===0&&raw.length>0;
+  return{mi,mo,ai,ao,removed,reassigned};
+}
+
+let correctedData=null, fileName='corrected';
+
+function setStatus(type,msg){
+  const el=document.getElementById('status');
+  el.className='status '+type;
+  el.innerHTML=msg;
+}
+
+function processFile(file){
+  fileName=file.name.replace(/\.[^.]+$/,'');
+  setStatus('info','<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Reading file...');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:false});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+      if(rows.length<2){setStatus('error','No data rows found.');return;}
+      let dataRows=rows.slice(1).filter(r=>r.some(v=>v!==null&&v!==''));
+      correctedData=[];
+      let totalDups=0,totalFixed=0;
+      for(let row of dataRows){
+        let date=row[0],id=row[1],name=row[2];
+        let raw=row.slice(3,9).filter(v=>v!==null&&v!=='');
+        if(raw.length===0&&!date&&!id) continue;
+        let{mi,mo,ai,ao,removed,reassigned}=correctRow(raw);
+        totalDups+=removed;
+        if(reassigned) totalFixed++;
+        correctedData.push({date,id,name,mi,mo,ai,ao});
+      }
+      document.getElementById('sTotal').textContent=correctedData.length;
+      document.getElementById('sDups').textContent=totalDups;
+      document.getElementById('sFixed').textContent=totalFixed;
+      document.getElementById('stats').style.display='grid';
+      renderPreview(correctedData);
+      document.getElementById('btnRow').style.display='flex';
+      document.getElementById('preview').style.display='block';
+      setStatus('success','<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Correction complete &mdash; '+correctedData.length+' rows processed');
+    }catch(err){setStatus('error','Could not read file: '+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderPreview(data){
+  const tb=document.getElementById('tBody');
+  tb.innerHTML='';
+  let shown=Math.min(data.length,100);
+  document.getElementById('previewLabel').textContent='Preview (first '+shown+' rows)';
+  document.getElementById('previewCount').textContent=data.length+' total';
+  for(let i=0;i<shown;i++){
+    let r=data[i];
+    tb.innerHTML+=`<tr>
+      <td class="td-date">${fmtDate(r.date)}</td>
+      <td class="td-id">${fmtID(r.id)}</td>
+      <td>${r.name??''}</td>
+      <td class="${r.mi!==null?'td-in':'td-empty'}">${fmtTime(r.mi)||'—'}</td>
+      <td class="${r.mo!==null?'td-out':'td-empty'}">${fmtTime(r.mo)||'—'}</td>
+      <td class="${r.ai!==null?'td-in':'td-empty'}">${fmtTime(r.ai)||'—'}</td>
+      <td class="${r.ao!==null?'td-out':'td-empty'}">${fmtTime(r.ao)||'—'}</td>
+    </tr>`;
+  }
+}
+
+function downloadFile(){
+  if(!correctedData) return;
+  let wsData=[['Date','ID','Name','DEBUT MATIN','FIN MATIN','DEBUT APREM','FIN APREM']];
+  for(let r of correctedData){
+    wsData.push([fmtDate(r.date),fmtID(r.id),r.name??'',fmtTime(r.mi),fmtTime(r.mo),fmtTime(r.ai),fmtTime(r.ao)]);
+  }
+  let wb2=XLSX.utils.book_new();
+  let ws2=XLSX.utils.aoa_to_sheet(wsData);
+  ws2['!cols']=[{wch:13},{wch:7},{wch:18},{wch:11},{wch:11},{wch:11},{wch:11}];
+  XLSX.utils.book_append_sheet(wb2,ws2,'Corrected');
+  XLSX.writeFile(wb2,fileName+'_corrected.xlsx');
+}
+
+const dz=document.getElementById('dropZone');
+document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])processFile(e.target.files[0]);});
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])processFile(e.dataTransfer.files[0]);});
+document.getElementById('dlBtn').addEventListener('click',downloadFile);
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  correctedData=null;
+  document.getElementById('status').className='status';
+  document.getElementById('stats').style.display='none';
+  document.getElementById('btnRow').style.display='none';
+  document.getElementById('preview').style.display='none';
+  document.getElementById('fileInput').value='';
+  document.getElementById('tBody').innerHTML='';
+});
+</script>
+</body>
+</html>
