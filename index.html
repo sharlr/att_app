@@ -195,6 +195,7 @@ table.data-tbl tr:last-child td{border-bottom:none}
     <div class="btn-row">
       <button class="btn" onclick="addEmpRow()" id="lBtnAddEmp">+ Ajouter employé</button>
       <button class="btn" onclick="clearEmployees()" style="color:var(--red-text)" id="lBtnClear">✕ Vider la liste</button>
+      <button class="btn" onclick="loadDemoEmployees()" style="color:var(--blue-text);border-color:var(--blue-text)" id="lBtnDemoEmp">🎯 Données démo</button>
     </div>
   </div>
   <div id="statusEmp" class="status"></div>
@@ -219,6 +220,9 @@ table.data-tbl tr:last-child td{border-bottom:none}
       </div>
       <h2 id="lDropRawTitle">Déposer le fichier brut ici</h2>
       <p id="lDropRawSub">ou cliquer pour sélectionner (.xlsx, .xls)</p>
+    </div>
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn" onclick="loadDemoRawData()" style="color:var(--blue-text);border-color:var(--blue-text)" id="lBtnDemoRaw">🎯 Charger données démo</button>
     </div>
   </div>
   <div id="status3" class="status"></div>
@@ -297,11 +301,12 @@ const LANG = {
     s2ListDesc:'Laissez les heures vides pour utiliser l\'horaire standard.',
     colFullName:'Nom Complet', colMorningIn:'Entrée Matin', colLunchOut:'Sortie Dèj.',
     colAfternoonIn:'Retour APM', colEveningOut:'Sortie Soir',
-    btnAddEmp:'+ Ajouter employé', btnClear:'✕ Vider la liste',
+    btnAddEmp:'+ Ajouter employé', btnClear:'✕ Vider la liste', btnDemoEmp:'🎯 Données démo',
     btnBackParams:'← Paramètres', btnNextRaw:'Suivant → Données brutes',
     s3CardTitle:'Données brutes de la pointeuse',
     s3CardDesc:'Format attendu : colonnes <span class="tag">Date</span> <span class="tag">ID</span> <span class="tag">Nom</span> <span class="tag">T1</span> <span class="tag">T2</span>…<br>L\'outil corrige automatiquement les doublons.',
     dropRawTitle:'Déposer le fichier brut ici', dropRawSub:'ou cliquer pour sélectionner (.xlsx, .xls)',
+    btnDemoRaw:'🎯 Charger données démo',
     statRows:'Lignes lues', statDups:'Doublons supprimés', statFixed:'Créneaux corrigés', statUnknown:'IDs inconnus',
     previewLabel:'Aperçu', colDate:'Date', colName:'Nom',
     colMIn:'Entrée M.', colMOut:'Sortie Déj.', colAIn:'Retour APM', colAOut:'Sortie Soir',
@@ -385,11 +390,12 @@ const LANG = {
     s2ListDesc:'Leave times blank to use the standard schedule.',
     colFullName:'Full Name', colMorningIn:'Morning In', colLunchOut:'Lunch Out',
     colAfternoonIn:'Afternoon In', colEveningOut:'Evening Out',
-    btnAddEmp:'+ Add employee', btnClear:'✕ Clear list',
+    btnAddEmp:'+ Add employee', btnClear:'✕ Clear list', btnDemoEmp:'🎯 Load Demo Data',
     btnBackParams:'← Settings', btnNextRaw:'Next → Raw Data',
     s3CardTitle:'Raw data from attendance device',
     s3CardDesc:'Expected format: columns <span class="tag">Date</span> <span class="tag">ID</span> <span class="tag">Name</span> <span class="tag">T1</span> <span class="tag">T2</span>…<br>The tool automatically fixes duplicates.',
     dropRawTitle:'Drop raw file here', dropRawSub:'or click to select (.xlsx, .xls)',
+    btnDemoRaw:'🎯 Load Demo Data',
     statRows:'Rows read', statDups:'Duplicates removed', statFixed:'Slots corrected', statUnknown:'Unknown IDs',
     previewLabel:'Preview', colDate:'Date', colName:'Name',
     colMIn:'Morning In', colMOut:'Lunch Out', colAIn:'Afternoon In', colAOut:'Evening Out',
@@ -480,10 +486,11 @@ function setLang(lang) {
     lS2ListTitle:L.s2ListTitle, lS2ListSub:L.s2ListSub, lS2ListDesc:L.s2ListDesc,
     lColFullName:L.colFullName, lColMorningIn:L.colMorningIn, lColLunchOut:L.colLunchOut,
     lColAfternoonIn:L.colAfternoonIn, lColEveningOut:L.colEveningOut,
-    lBtnAddEmp:L.btnAddEmp, lBtnClear:L.btnClear,
+    lBtnAddEmp:L.btnAddEmp, lBtnClear:L.btnClear, lBtnDemoEmp:L.btnDemoEmp,
     lBtnBackParams:L.btnBackParams, lBtnNextRaw:L.btnNextRaw,
     lS3CardTitle:L.s3CardTitle, lS3CardDesc:L.s3CardDesc,
     lDropRawTitle:L.dropRawTitle, lDropRawSub:L.dropRawSub,
+    lBtnDemoRaw:L.btnDemoRaw,
     lStatRows:L.statRows, lStatDups:L.statDups, lStatFixed:L.statFixed, lStatUnknown:L.statUnknown,
     prevLabel3:L.previewLabel,
     lColDate:L.colDate, lColName:L.colName,
@@ -551,6 +558,159 @@ function addEmpRow(id='',name='',mi='',mo='',ai='',ao=''){
 })();
 
 function clearEmployees(){document.getElementById('empBody').innerHTML='';}
+
+// ===========================
+// DEMO DATA
+// ===========================
+const DEMO_EMPLOYEES = [
+  {id:'001', nameFr:'Sophie Martin',      nameEn:'Sophie Martin',      mi:'07:30',mo:'12:30',ai:'14:00',ao:'18:30'},
+  {id:'002', nameFr:'Karim Benali',       nameEn:'Karim Benali',       mi:'07:30',mo:'12:30',ai:'14:00',ao:'18:30'},
+  {id:'003', nameFr:'Fatima Osei',        nameEn:'Fatima Osei',        mi:'07:30',mo:'',     ai:'',     ao:'18:30'},
+  {id:'004', nameFr:'Jean-Pierre Dubois', nameEn:'Jean-Pierre Dubois', mi:'08:00',mo:'12:00',ai:'13:00',ao:'17:00'},
+  {id:'005', nameFr:'Amina Hassan',       nameEn:'Amina Hassan',       mi:'07:30',mo:'12:30',ai:'14:00',ao:'18:30'},
+];
+
+function loadDemoEmployees() {
+  const L = T();
+  clearEmployees();
+  DEMO_EMPLOYEES.forEach(e => {
+    addEmpRow(e.id, currentLang==='fr' ? e.nameFr : e.nameEn, e.mi, e.mo, e.ai, e.ao);
+  });
+  setSt('statusEmp','success', currentLang==='fr'
+    ? '🎯 Données démo chargées — 5 employés avec horaires variés.'
+    : '🎯 Demo data loaded — 5 employees with varied schedules.');
+}
+
+function loadDemoRawData() {
+  const L = T();
+  const month = parseInt(document.getElementById('p_month').value) || 4;
+  const year  = parseInt(document.getElementById('p_year').value)  || 2026;
+  const wkd   = parseInt(document.getElementById('p_weekend').value);
+
+  // Build working days list for the selected month
+  const days = getWorkDaysList(year, month, wkd);
+  if (!days.length) {
+    setSt('status3','error', currentLang==='fr' ? 'Aucun jour ouvrable trouvé pour ce mois.' : 'No working days found for this month.');
+    return;
+  }
+
+  const emps = getEmployees();
+  const demoEmps = emps.length > 0 ? emps : DEMO_EMPLOYEES.map(e => ({
+    id: e.id,
+    name: currentLang==='fr' ? e.nameFr : e.nameEn,
+    smi: timeStrToFrac(e.mi), smo: timeStrToFrac(e.mo)||null,
+    sai: timeStrToFrac(e.ai)||null, sao: timeStrToFrac(e.ao),
+  }));
+
+  // Seed for reproducible "random" variation
+  function seeded(seed){ let x=Math.sin(seed)*10000; return x-Math.floor(x); }
+
+  // Scenarios per employee per day: normal, late, very late, early exit, absent, half-day
+  const SCENARIOS = ['normal','normal','normal','normal','late','verylate','earlyexit','absent','halfday','normal'];
+
+  const rawRows = [];
+  let seed = 1;
+
+  demoEmps.forEach((emp, ei) => {
+    const empId = fmtID(emp.id || emp.idF);
+    const empName = emp.name || (currentLang==='fr' ? DEMO_EMPLOYEES[ei%DEMO_EMPLOYEES.length].nameFr : DEMO_EMPLOYEES[ei%DEMO_EMPLOYEES.length].nameEn);
+    const smi = emp.smi !== undefined ? emp.smi : timeStrToFrac(emp.mi);
+    const smo = emp.smo !== undefined ? emp.smo : timeStrToFrac(emp.mo);
+    const sai = emp.sai !== undefined ? emp.sai : timeStrToFrac(emp.ai);
+    const sao = emp.sao !== undefined ? emp.sao : timeStrToFrac(emp.ao);
+
+    days.forEach((day, di) => {
+      seed++;
+      const s = seeded(seed + ei * 100 + di * 7);
+      const scenario = SCENARIOS[Math.floor(s * SCENARIOS.length)];
+      const dateStr = fmtDateFromJS(day);
+
+      // Small noise helper: ±secs seconds of jitter in fraction
+      const jitter = (base, secs) => base + (seeded(seed*3+ei+di) - 0.5) * secs / 86400;
+
+      if (scenario === 'absent') return; // no punch row
+
+      const punches = [];
+
+      // Morning in
+      if (smi !== null) {
+        const late = scenario==='late' ? (5+Math.floor(seeded(seed*5)*20))/1440
+                   : scenario==='verylate' ? (20+Math.floor(seeded(seed*7)*30))/1440 : 0;
+        punches.push(jitter(smi + late, 30));
+      }
+
+      if (scenario === 'halfday') {
+        // Only morning — no afternoon
+        if (smo !== null) punches.push(jitter(smo, 45));
+      } else {
+        // Morning out (lunch)
+        if (smo !== null) {
+          const earlyLunch = scenario==='earlyexit' ? (5+Math.floor(seeded(seed*9)*10))/1440 : 0;
+          punches.push(jitter(smo - earlyLunch, 45));
+        }
+        // Afternoon in
+        if (sai !== null) {
+          const lateReturn = scenario==='late' ? (3+Math.floor(seeded(seed*11)*12))/1440 : 0;
+          punches.push(jitter(sai + lateReturn, 45));
+        }
+        // Afternoon out (evening)
+        if (sao !== null) {
+          const earlyExit = scenario==='earlyexit' ? (10+Math.floor(seeded(seed*13)*20))/1440 : 0;
+          const overtime  = scenario==='normal' && seeded(seed*17) > 0.75 ? (15+Math.floor(seeded(seed*19)*45))/1440 : 0;
+          punches.push(jitter(sao - earlyExit + overtime, 30));
+        }
+        // Occasionally add a duplicate punch (±2 min)
+        if (punches.length > 0 && seeded(seed*23) > 0.85) {
+          const dupIdx = Math.floor(seeded(seed*29) * punches.length);
+          punches.splice(dupIdx + 1, 0, punches[dupIdx] + seeded(seed*31) * 3/1440);
+        }
+      }
+
+      if (punches.length > 0) {
+        rawRows.push({ dateStr, id: empId, name: empName, punches });
+      }
+    });
+  });
+
+  // Convert to rawData format by running correctRow on each set of punches
+  const empMap = {};
+  demoEmps.forEach(e => { empMap[fmtID(e.id||e.idF)] = e; });
+
+  rawData = [];
+  let totalDups = 0, totalFixed = 0;
+
+  rawRows.forEach(r => {
+    // Convert fraction punches back to raw values for correctRow
+    const rawPunches = r.punches.map(p => Math.max(0, Math.min(p, 0.9999)));
+    const { mi, mo, ai, ao, removed, reassigned } = correctRow(rawPunches);
+    totalDups += removed;
+    if (reassigned) totalFixed++;
+    rawData.push({
+      dateRaw: r.dateStr, dateStr: r.dateStr, dateJS: null,
+      idRaw: r.id, id: r.id, name: r.name,
+      mi, mo, ai, ao
+    });
+  });
+
+  // Sort by date then employee id
+  rawData.sort((a,b) => a.dateStr.localeCompare(b.dateStr) || a.id.localeCompare(b.id));
+
+  // Update UI stats
+  document.getElementById('s3_rows').textContent    = rawData.length;
+  document.getElementById('s3_dups').textContent    = totalDups;
+  document.getElementById('s3_fixed').textContent   = totalFixed;
+  document.getElementById('s3_unknown').textContent = 0;
+  document.getElementById('stats3').style.display   = 'grid';
+  renderPreview3(rawData);
+  document.getElementById('preview3').style.display  = 'block';
+  document.getElementById('btnRow3').style.display   = 'flex';
+  document.getElementById('btnReset3').style.display = 'flex';
+
+  const msg = currentLang==='fr'
+    ? `🎯 Données démo générées — ${rawData.length} lignes sur ${days.length} jours ouvrables pour ${demoEmps.length} employés. Absences, retards et heures sup inclus.`
+    : `🎯 Demo data generated — ${rawData.length} rows across ${days.length} working days for ${demoEmps.length} employees. Absences, lateness & overtime included.`;
+  setSt('status3','success', msg);
+}
 
 function setSt(id,type,msg){const el=document.getElementById(id);el.className='status '+type;el.style.display='flex';el.innerHTML=msg;}
 
